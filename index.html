@@ -92,6 +92,14 @@
             pointer-events: none;
             display: block;
         }
+
+        /* Ensure PDF content is visible and not clipped */
+        @media print {
+            .output-box {
+                overflow: visible !important;
+                height: auto !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -214,12 +222,22 @@
 
         function downloadPDF() {
             const element = document.getElementById('outputPattern');
+            // Improved options for PDF rendering
             const opt = {
-                margin: 1,
+                margin: 0.5,
                 filename: 'translated-pattern.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+                image: { type: 'jpeg', quality: 0.95 },
+                html2canvas: { 
+                    scale: 2, 
+                    logging: false, 
+                    useCORS: true 
+                },
+                jsPDF: { 
+                    unit: 'in', 
+                    format: 'letter', 
+                    orientation: 'portrait' 
+                },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
             
             html2pdf().set(opt).from(element).save();
