@@ -13,7 +13,6 @@
             line-height: 1.6;
             color: #333;
         }
-        /* We upgraded the input from a textarea to a rich-text div */
         .rich-box {
             width: 100%;
             min-height: 200px;
@@ -44,11 +43,35 @@
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
+            transition: background-color 0.3s;
         }
-        button:hover {
+        button:hover:not(:disabled) {
             background-color: #0052a3;
         }
-        /* Adds a placeholder effect for the empty div */
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .output-header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+            margin-bottom: 10px;
+        }
+        .output-header-container h3 {
+            margin: 0;
+        }
+        .copy-btn {
+            background-color: #4CAF50;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        .copy-btn:hover:not(:disabled) {
+            background-color: #45a049;
+        }
+
         [contenteditable]:empty:before {
             content: attr(placeholder);
             color: #888;
@@ -75,7 +98,10 @@
     
     <button onclick="translatePattern()">Translate Pattern</button>
 
-    <h3>Translated Result:</h3>
+    <div class="output-header-container">
+        <h3>Translated Result:</h3>
+        <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()" disabled>Copy Result</button>
+    </div>
     <div id="outputPattern" class="rich-box output-box">Your translated pattern will appear here...</div>
 
     <script>
@@ -106,10 +132,8 @@
             const outputDiv = document.getElementById("outputPattern");
             const direction = document.querySelector('input[name="direction"]:checked').value;
             
-            // Step 1: Copy the exact, formatted HTML structure to the output box first
             outputDiv.innerHTML = inputDiv.innerHTML;
 
-            // Step 2: Create a "TreeWalker" to hunt down ONLY the text nodes, ignoring HTML tags
             const walker = document.createTreeWalker(
                 outputDiv,
                 NodeFilter.SHOW_TEXT,
@@ -117,18 +141,15 @@
                 false
             );
 
-            // Step 3: Collect all the text nodes into a list
             let textNodes = [];
             let node;
             while (node = walker.nextNode()) {
                 textNodes.push(node);
             }
 
-            // Step 4: Run our two-pass translation on each text node independently
             textNodes.forEach(textNode => {
                 let text = textNode.nodeValue;
 
-                // PASS 1: Placeholders
                 stitchDictionary.forEach((pair, index) => {
                     let searchFor = direction === "usToUk" ? pair[0] : pair[1];
                     let temporaryPlaceholder = `__PLACEHOLDER_${index}__`;
@@ -136,16 +157,46 @@
                     text = text.replace(regex, temporaryPlaceholder);
                 });
 
-                // PASS 2: Final translated words
                 stitchDictionary.forEach((pair, index) => {
                     let replaceWith = direction === "usToUk" ? pair[1] : pair[0];
                     const regex = new RegExp(`__PLACEHOLDER_${index}__`, "g");
                     text = text.replace(regex, replaceWith);
                 });
 
-                // Update the text node with the safe, translated text
                 textNode.nodeValue = text;
             });
+
+            // Enable the Copy button now that translation is done
+            document.getElementById("copyBtn").disabled = false;
+        }
+
+        function copyToClipboard() {
+            const outputDiv = document.getElementById("outputPattern");
+            const range = document.createRange();
+            range.selectNodeContents(outputDiv);
+            
+            const selection = window.getSelection();
+            selection.removeAllRanges(); 
+            selection.addRange(range);
+            
+            try {
+                document.execCommand('copy');
+                const btn = document.getElementById("copyBtn");
+                btn.innerText = "Copied!";
+                btn.style.backgroundColor = "#218838";
+                
+                setTimeout(() => {
+                    btn.innerText = "Copy Result";
+                    btn.style.backgroundColor = "#4CAF50"; 
+                }, 2000);
+            } catch (err) {
+                const btn = document.getElementById("copyBtn");
+                btn.innerText = "Failed to copy!";
+                btn.style.backgroundColor = "#dc3545";
+                console.error('Copy failed', err);
+            }
+            
+            selection.removeAllRanges();
         }
     </script>
 
