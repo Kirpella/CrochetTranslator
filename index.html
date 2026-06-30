@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crochet Stitch Translator</title>
-    <!-- Include html2pdf library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -74,16 +72,16 @@
             padding: 8px 16px;
             font-size: 14px;
         }
-        .pdf-btn {
-            background-color: #d9534f;
+        .print-btn {
+            background-color: #6c757d;
             padding: 8px 16px;
             font-size: 14px;
         }
         .copy-btn:hover:not(:disabled) {
             background-color: #45a049;
         }
-        .pdf-btn:hover:not(:disabled) {
-            background-color: #c9302c;
+        .print-btn:hover:not(:disabled) {
+            background-color: #5a6268;
         }
 
         [contenteditable]:empty:before {
@@ -91,6 +89,20 @@
             color: #888;
             pointer-events: none;
             display: block;
+        }
+
+        /* This CSS hides everything except the translated result when printing */
+        @media print {
+            body * { visibility: hidden; }
+            #outputPattern, #outputPattern * { visibility: visible; }
+            #outputPattern {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                border: none;
+                background-color: white;
+            }
         }
     </style>
 </head>
@@ -116,7 +128,7 @@
         <h3>Translated Result:</h3>
         <div class="btn-group">
             <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()" disabled>Copy Result</button>
-            <button id="pdfBtn" class="pdf-btn" onclick="downloadPDF()" disabled>Download PDF</button>
+            <button id="printBtn" class="print-btn" onclick="window.print()" disabled>Print/Save PDF</button>
         </div>
     </div>
     <div id="outputPattern" class="rich-box output-box">Your translated pattern will appear here...</div>
@@ -184,7 +196,7 @@
             });
 
             document.getElementById("copyBtn").disabled = false;
-            document.getElementById("pdfBtn").disabled = false;
+            document.getElementById("printBtn").disabled = false;
         }
 
         function copyToClipboard() {
@@ -210,28 +222,6 @@
                 console.error('Copy failed', err);
             }
             selection.removeAllRanges();
-        }
-
-        function downloadPDF() {
-            const element = document.getElementById('outputPattern');
-            
-            // By cloning the element and removing the 'rich-box' styling for the PDF 
-            // generation, we prevent the scrollbars and internal constraints from 
-            // causing the blank page issues.
-            const clone = element.cloneNode(true);
-            clone.style.overflow = 'visible';
-            clone.style.height = 'auto';
-            clone.style.border = 'none';
-
-            const opt = {
-                margin: 0.5,
-                filename: 'translated-pattern.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-            
-            html2pdf().set(opt).from(clone).save();
         }
     </script>
 
