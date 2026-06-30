@@ -4,223 +4,155 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crochet Stitch Translator</title>
-    <!-- Include PDF.js library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Include Mammoth.js for Word docs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <style>
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 0 20px;
-            line-height: 1.6;
-            color: #333;
-        }
-        .rich-box {
-            width: 100%;
-            min-height: 200px;
-            padding: 15px;
-            box-sizing: border-box;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: #fff;
-            overflow-y: auto;
-        }
-        .output-box {
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
-        }
-        .controls {
-            margin-bottom: 20px;
-            background: #eef2f5;
-            padding: 15px;
-            border-radius: 5px;
-        }
-        button {
-            background-color: #0066cc;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s;
-        }
-        button:hover:not(:disabled) {
-            background-color: #0052a3;
-        }
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #333; }
         
-        .output-header-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 30px;
-            margin-bottom: 10px;
-        }
-        .output-header-container h3 {
-            margin: 0;
-        }
-        .btn-group {
-            display: flex;
-            gap: 10px;
-        }
-        .copy-btn {
-            background-color: #4CAF50;
-            padding: 8px 16px;
-            font-size: 14px;
-        }
-        .print-btn {
-            background-color: #6c757d;
-            padding: 8px 16px;
-            font-size: 14px;
-        }
-        .copy-btn:hover:not(:disabled) {
-            background-color: #45a049;
-        }
-        .print-btn:hover:not(:disabled) {
-            background-color: #5a6268;
-        }
+        /* Streamlined Direct Notice Bar */
+        .pdf-notice { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 12px; border-radius: 5px; margin-bottom: 20px; font-size: 14px; text-align: center; }
+        .pdf-notice a { color: #0066cc; font-weight: bold; text-decoration: underline; margin: 0 3px; }
+        .pdf-notice a:hover { color: #004182; }
 
-        [contenteditable]:empty:before {
-            content: attr(placeholder);
-            color: #888;
-            pointer-events: none;
-            display: block;
-        }
+        .rich-box { width: 100%; min-height: 200px; padding: 15px; box-sizing: border-box; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; background-color: #fff; overflow-y: auto; }
+        
+        /* CSS Placeholder for contenteditable fields */
+        .rich-box[contenteditable]:empty::before { content: attr(placeholder); color: #aaa; font-style: italic; }
+        
+        .output-box { background-color: #f8f9fa; border: 1px solid #e9ecef; }
+        .controls { margin-bottom: 20px; background: #eef2f5; padding: 15px; border-radius: 5px; }
+        
+        .radio-group { margin-bottom: 15px; }
+        .upload-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        
+        /* Global Button Styling */
+        button { background-color: #0066cc; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background-color 0.3s; }
+        button:hover:not(:disabled) { background-color: #0052a3; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        .btn-group { display: flex; gap: 10px; }
+        
+        /* Balanced green style for action buttons */
+        .copy-btn, .print-btn { background-color: #4CAF50; padding: 8px 16px; font-size: 14px; }
+        .copy-btn:hover:not(:disabled), .print-btn:hover:not(:disabled) { background-color: #45a049; }
+        
+        /* Clear button specific styles */
+        .clear-btn { background-color: #6c757d; padding: 6px 14px; font-size: 14px; margin-left: auto; }
+        .clear-btn:hover:not(:disabled) { background-color: #5a6268; }
 
-        @media print {
-            body * { visibility: hidden; }
-            #outputPattern, #outputPattern * { visibility: visible; }
-            #outputPattern {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                border: none;
-                background-color: white;
-            }
-        }
+        @media print { body * { visibility: hidden; } #outputPattern, #outputPattern * { visibility: visible; } #outputPattern { position: absolute; left: 0; top: 0; width: 100%; border: none; background-color: white; } }
     </style>
 </head>
 <body>
 
     <h1>Crochet Stitch Translator</h1>
     
-    <div class="controls">
-        <label>Upload PDF Pattern:</label>
-        <input type="file" id="pdfUpload" accept="application/pdf">
-        <hr style="margin: 15px 0;">
-        <label>
-            <input type="radio" name="direction" value="ukToUs" checked> <strong>UK to US</strong>
-        </label>
-        <label style="margin-left: 20px;">
-            <input type="radio" name="direction" value="usToUk"> <strong>US to UK</strong>
-        </label>
+    <!-- Single-focused, ultra-clean helper bar -->
+    <div class="pdf-notice">
+        <strong>PDFs must be converted to .docx first.</strong> Use 
+        <a href="https://www.adobe.com/acrobat/online/pdf-to-word.html" target="_blank" rel="noopener noreferrer">Adobe PDF Converter</a> 
+        free with no sign-up!
     </div>
 
-    <div id="inputPattern" class="rich-box" contenteditable="true" placeholder="Paste your formatted pattern text here or upload a PDF above..."></div>
-    
-    <button onclick="translatePattern()">Translate Pattern</button>
-
-    <div class="output-header-container">
-        <h3>Translated Result:</h3>
-        <div class="btn-group">
-            <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()" disabled>Copy Result</button>
-            <button id="printBtn" class="print-btn" onclick="window.print()" disabled>Print/Save PDF</button>
+    <div class="controls">
+        <!-- Translation Direction Options -->
+        <div class="radio-group">
+            <label><input type="radio" name="direction" value="ukToUs" checked> <strong>UK to US</strong></label>
+            <label style="margin-left: 20px;"><input type="radio" name="direction" value="usToUk"> <strong>US to UK</strong></label>
+        </div>
+        
+        <hr style="margin: 15px 0; border: 0; border-top: 1px solid #d1d5db;">
+        
+        <!-- File Upload & Clear Row Area -->
+        <div class="upload-group">
+            <strong>Paste below or upload file:</strong>
+            <input type="file" id="fileUpload" accept=".docx">
+            <button type="button" id="clearBtn" class="clear-btn" onclick="clearInput()">Clear Input</button>
         </div>
     </div>
-    <div id="outputPattern" class="rich-box output-box">Your translated pattern will appear here...</div>
+
+    <!-- Input Area -->
+    <div id="inputPattern" class="rich-box" contenteditable="true" placeholder="Paste here..."></div>
+    
+    <button id="translateBtn" onclick="translatePattern()" disabled>Translate Pattern</button>
+
+    <h3>Translated Result:</h3>
+    <div class="btn-group">
+        <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()" disabled>Copy Result</button>
+        <button id="printBtn" class="print-btn" onclick="window.print()" disabled>Print/Save PDF</button>
+    </div>
+    <div id="outputPattern" class="rich-box" contenteditable="true" placeholder="Your translated pattern will appear here..."></div>
 
     <script>
-        // PDF.js worker setup
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
         const stitchDictionary = [
-            ["yarn over", "yarn round hook"],
-            ["half treble crochet", "half double treble crochet"],
-            ["half double crochet", "half treble crochet"],
-            ["double treble crochet", "triple treble crochet"],
-            ["treble crochet", "double treble crochet"],
-            ["double crochet", "treble crochet"],
-            ["single crochet", "double crochet"],
-            ["half treble", "half double treble"],
-            ["half double", "half treble"],
-            ["double treble", "triple treble"],
-            ["slip stitch", "slip stitch"],
-            ["htr", "hdtr"],
-            ["hdc", "htr"],
-            ["dtr", "trtr"],
-            ["tr", "dtr"],
-            ["dc", "tr"],
-            ["sc", "dc"],
-            ["yo", "yrh"],
-            ["sl st", "ss"]
+            ["yarn over", "yarn round hook"], ["half treble crochet", "half double treble crochet"],
+            ["half double crochet", "half treble crochet"], ["double treble crochet", "triple treble crochet"],
+            ["treble crochet", "double treble crochet"], ["double crochet", "treble crochet"],
+            ["single crochet", "double crochet"], ["half treble", "half double treble"],
+            ["half double", "half treble"], ["double treble", "triple treble"],
+            ["slip stitch", "slip stitch"], ["htr", "hdtr"], ["hdc", "htr"],
+            ["dtr", "trtr"], ["tr", "dtr"], ["dc", "tr"], ["sc", "dc"], ["yo", "yrh"], ["sl st", "ss"]
         ];
 
-        // Handle PDF File Upload
-        document.getElementById('pdfUpload').addEventListener('change', async (event) => {
+        const inputDiv = document.getElementById('inputPattern');
+        const translateBtn = document.getElementById('translateBtn');
+        const fileUploadInput = document.getElementById('fileUpload');
+
+        function checkInputLength() {
+            const hasContent = inputDiv.innerText.trim().length > 0;
+            translateBtn.disabled = !hasContent;
+        }
+
+        inputDiv.addEventListener('input', checkInputLength);
+        inputDiv.addEventListener('blur', checkInputLength);
+
+        // Handle Word Document Uploads
+        fileUploadInput.addEventListener('change', async (event) => {
             const file = event.target.files[0];
             if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = async () => {
-                const typedarray = new Uint8Array(reader.result);
-                const pdf = await pdfjsLib.getDocument(typedarray).promise;
-                let fullText = '';
-
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    const pageText = textContent.items.map(item => item.str).join(' ');
-                    fullText += pageText + '\n';
-                }
-
-                document.getElementById('inputPattern').innerText = fullText;
-            };
-            reader.readAsArrayBuffer(file);
+            if (file.name.endsWith('.docx')) {
+                inputDiv.innerHTML = "<span style='color: #0066cc; font-weight: bold;'>Reading Word document...</span>";
+                translateBtn.disabled = true;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    mammoth.convertToHtml({arrayBuffer: e.target.result})
+                        .then(res => {
+                            inputDiv.innerHTML = res.value;
+                            checkInputLength();
+                        });
+                };
+                reader.readAsArrayBuffer(file);
+            }
         });
 
+        function clearInput() {
+            inputDiv.innerHTML = "";
+            fileUploadInput.value = ""; 
+            checkInputLength();
+        }
+
         function translatePattern() {
-            const inputDiv = document.getElementById("inputPattern");
             const outputDiv = document.getElementById("outputPattern");
             const direction = document.querySelector('input[name="direction"]:checked').value;
-            
             outputDiv.innerHTML = inputDiv.innerHTML;
 
-            const walker = document.createTreeWalker(
-                outputDiv,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
-
+            const walker = document.createTreeWalker(outputDiv, NodeFilter.SHOW_TEXT, null, false);
             let textNodes = [];
             let node;
-            while (node = walker.nextNode()) {
-                textNodes.push(node);
-            }
+            
+            while (node = walker.nextNode()) textNodes.push(node);
 
             textNodes.forEach(textNode => {
                 let text = textNode.nodeValue;
-
                 stitchDictionary.forEach((pair, index) => {
                     let searchFor = direction === "usToUk" ? pair[0] : pair[1];
-                    let temporaryPlaceholder = `__PLACEHOLDER_${index}__`;
-                    const regex = new RegExp("(?<=\\b|\\d)" + searchFor + "\\b", "gi");
-                    text = text.replace(regex, temporaryPlaceholder);
+                    text = text.replace(new RegExp("(?<=\\b|\\d)" + searchFor + "\\b", "gi"), `__P${index}__`);
                 });
-
                 stitchDictionary.forEach((pair, index) => {
-                    let replaceWith = direction === "usToUk" ? pair[1] : pair[0];
-                    const regex = new RegExp(`__PLACEHOLDER_${index}__`, "g");
-                    text = text.replace(regex, replaceWith);
+                    text = text.replace(new RegExp(`__P${index}__`, "g"), direction === "usToUk" ? pair[1] : pair[0]);
                 });
-
                 textNode.nodeValue = text;
             });
 
@@ -228,31 +160,18 @@
             document.getElementById("printBtn").disabled = false;
         }
 
+        // Clip text with HTML structure intact
         function copyToClipboard() {
-            const outputDiv = document.getElementById("outputPattern");
             const range = document.createRange();
-            range.selectNodeContents(outputDiv);
-            
-            const selection = window.getSelection();
-            selection.removeAllRanges(); 
-            selection.addRange(range);
-            
-            try {
-                document.execCommand('copy');
-                const btn = document.getElementById("copyBtn");
-                btn.innerText = "Copied!";
-                btn.style.backgroundColor = "#218838";
-                
-                setTimeout(() => {
-                    btn.innerText = "Copy Result";
-                    btn.style.backgroundColor = "#4CAF50"; 
-                }, 2000);
-            } catch (err) {
-                console.error('Copy failed', err);
-            }
-            selection.removeAllRanges();
+            range.selectNodeContents(document.getElementById("outputPattern"));
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+            const btn = document.getElementById("copyBtn");
+            btn.innerText = "Copied!";
+            setTimeout(() => btn.innerText = "Copy Result", 2000);
         }
     </script>
-
 </body>
 </html>
