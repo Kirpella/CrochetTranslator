@@ -1,1 +1,1 @@
-A simple translator for crochet patterns between UK and US Terms. Formatting and photos should be preserved. For best results use integrated copy button.
+A simple translator for crochet patterns between UK and US Terms. Formatting and photos should be preserved. For best results use integrated copy button. PDF not supported but a hyperlink to Adobe PDF Converter is added at the top.
