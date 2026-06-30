@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crochet Stitch Translator</title>
+    <!-- Include PDF.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -91,7 +93,6 @@
             display: block;
         }
 
-        /* This CSS hides everything except the translated result when printing */
         @media print {
             body * { visibility: hidden; }
             #outputPattern, #outputPattern * { visibility: visible; }
@@ -109,9 +110,11 @@
 <body>
 
     <h1>Crochet Stitch Translator</h1>
-    <p>Paste your formatted pattern below. Bolding, italics, and lists will be preserved!</p>
-
+    
     <div class="controls">
+        <label>Upload PDF Pattern:</label>
+        <input type="file" id="pdfUpload" accept="application/pdf">
+        <hr style="margin: 15px 0;">
         <label>
             <input type="radio" name="direction" value="ukToUs" checked> <strong>UK to US</strong>
         </label>
@@ -120,7 +123,7 @@
         </label>
     </div>
 
-    <div id="inputPattern" class="rich-box" contenteditable="true" placeholder="Paste your formatted pattern text here..."></div>
+    <div id="inputPattern" class="rich-box" contenteditable="true" placeholder="Paste your formatted pattern text here or upload a PDF above..."></div>
     
     <button onclick="translatePattern()">Translate Pattern</button>
 
@@ -134,6 +137,9 @@
     <div id="outputPattern" class="rich-box output-box">Your translated pattern will appear here...</div>
 
     <script>
+        // PDF.js worker setup
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
         const stitchDictionary = [
             ["yarn over", "yarn round hook"],
             ["half treble crochet", "half double treble crochet"],
@@ -155,6 +161,29 @@
             ["yo", "yrh"],
             ["sl st", "ss"]
         ];
+
+        // Handle PDF File Upload
+        document.getElementById('pdfUpload').addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const typedarray = new Uint8Array(reader.result);
+                const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                let fullText = '';
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    fullText += pageText + '\n';
+                }
+
+                document.getElementById('inputPattern').innerText = fullText;
+            };
+            reader.readAsArrayBuffer(file);
+        });
 
         function translatePattern() {
             const inputDiv = document.getElementById("inputPattern");
