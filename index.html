@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crochet Stitch Translator</title>
+    <!-- Include html2pdf library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -63,13 +65,25 @@
         .output-header-container h3 {
             margin: 0;
         }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
         .copy-btn {
             background-color: #4CAF50;
             padding: 8px 16px;
             font-size: 14px;
         }
+        .pdf-btn {
+            background-color: #d9534f;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
         .copy-btn:hover:not(:disabled) {
             background-color: #45a049;
+        }
+        .pdf-btn:hover:not(:disabled) {
+            background-color: #c9302c;
         }
 
         [contenteditable]:empty:before {
@@ -100,7 +114,10 @@
 
     <div class="output-header-container">
         <h3>Translated Result:</h3>
-        <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()" disabled>Copy Result</button>
+        <div class="btn-group">
+            <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()" disabled>Copy Result</button>
+            <button id="pdfBtn" class="pdf-btn" onclick="downloadPDF()" disabled>Download PDF</button>
+        </div>
     </div>
     <div id="outputPattern" class="rich-box output-box">Your translated pattern will appear here...</div>
 
@@ -166,8 +183,8 @@
                 textNode.nodeValue = text;
             });
 
-            // Enable the Copy button now that translation is done
             document.getElementById("copyBtn").disabled = false;
+            document.getElementById("pdfBtn").disabled = false;
         }
 
         function copyToClipboard() {
@@ -190,13 +207,22 @@
                     btn.style.backgroundColor = "#4CAF50"; 
                 }, 2000);
             } catch (err) {
-                const btn = document.getElementById("copyBtn");
-                btn.innerText = "Failed to copy!";
-                btn.style.backgroundColor = "#dc3545";
                 console.error('Copy failed', err);
             }
-            
             selection.removeAllRanges();
+        }
+
+        function downloadPDF() {
+            const element = document.getElementById('outputPattern');
+            const opt = {
+                margin: 1,
+                filename: 'translated-pattern.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            
+            html2pdf().set(opt).from(element).save();
         }
     </script>
 
