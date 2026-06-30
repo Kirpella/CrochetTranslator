@@ -92,14 +92,6 @@
             pointer-events: none;
             display: block;
         }
-
-        /* Ensure PDF content is visible and not clipped */
-        @media print {
-            .output-box {
-                overflow: visible !important;
-                height: auto !important;
-            }
-        }
     </style>
 </head>
 <body>
@@ -222,25 +214,24 @@
 
         function downloadPDF() {
             const element = document.getElementById('outputPattern');
-            // Improved options for PDF rendering
+            
+            // By cloning the element and removing the 'rich-box' styling for the PDF 
+            // generation, we prevent the scrollbars and internal constraints from 
+            // causing the blank page issues.
+            const clone = element.cloneNode(true);
+            clone.style.overflow = 'visible';
+            clone.style.height = 'auto';
+            clone.style.border = 'none';
+
             const opt = {
                 margin: 0.5,
                 filename: 'translated-pattern.pdf',
-                image: { type: 'jpeg', quality: 0.95 },
-                html2canvas: { 
-                    scale: 2, 
-                    logging: false, 
-                    useCORS: true 
-                },
-                jsPDF: { 
-                    unit: 'in', 
-                    format: 'letter', 
-                    orientation: 'portrait' 
-                },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
             
-            html2pdf().set(opt).from(element).save();
+            html2pdf().set(opt).from(clone).save();
         }
     </script>
 
