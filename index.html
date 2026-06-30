@@ -13,25 +13,21 @@
             line-height: 1.6;
             color: #333;
         }
-        textarea {
+        /* We upgraded the input from a textarea to a rich-text div */
+        .rich-box {
             width: 100%;
-            height: 200px;
+            min-height: 200px;
             padding: 15px;
             box-sizing: border-box;
             margin-bottom: 20px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            font-family: monospace;
-            resize: vertical;
+            background-color: #fff;
+            overflow-y: auto;
         }
         .output-box {
             background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            white-space: pre-wrap;
             border: 1px solid #e9ecef;
-            min-height: 150px;
-            font-family: monospace;
         }
         .controls {
             margin-bottom: 20px;
@@ -52,12 +48,19 @@
         button:hover {
             background-color: #0052a3;
         }
+        /* Adds a placeholder effect for the empty div */
+        [contenteditable]:empty:before {
+            content: attr(placeholder);
+            color: #888;
+            pointer-events: none;
+            display: block;
+        }
     </style>
 </head>
 <body>
 
     <h1>Crochet Stitch Translator</h1>
-    <p>Paste your pattern below and select the conversion direction to safely translate terms.</p>
+    <p>Paste your formatted pattern below. Bolding, italics, and lists will be preserved!</p>
 
     <div class="controls">
         <label>
@@ -68,18 +71,15 @@
         </label>
     </div>
 
-    <textarea id="inputPattern" placeholder="Paste your pattern text here..."></textarea>
+    <div id="inputPattern" class="rich-box" contenteditable="true" placeholder="Paste your formatted pattern text here..."></div>
     
     <button onclick="translatePattern()">Translate Pattern</button>
 
     <h3>Translated Result:</h3>
-    <div id="outputPattern" class="output-box">Your translated pattern will appear here...</div>
+    <div id="outputPattern" class="rich-box output-box">Your translated pattern will appear here...</div>
 
     <script>
-        // Dictionary format: [US Term, UK Term]
-        // Longer phrases are listed first to prevent partial word matches.
         const stitchDictionary = [
-            // Full Phrases
             ["yarn over", "yarn round hook"],
             ["half treble crochet", "half double treble crochet"],
             ["half double crochet", "half treble crochet"],
@@ -91,8 +91,6 @@
             ["half double", "half treble"],
             ["double treble", "triple treble"],
             ["slip stitch", "slip stitch"],
-            
-            // Abbreviations
             ["htr", "hdtr"],
             ["hdc", "htr"],
             ["dtr", "trtr"],
@@ -104,28 +102,50 @@
         ];
 
         function translatePattern() {
-            let text = document.getElementById("inputPattern").value;
+            const inputDiv = document.getElementById("inputPattern");
+            const outputDiv = document.getElementById("outputPattern");
             const direction = document.querySelector('input[name="direction"]:checked').value;
             
-            // PASS 1: Find terms and replace them with a temporary placeholder.
-            // This stops translated words from being re-translated in the same run.
-            stitchDictionary.forEach((pair, index) => {
-                let searchFor = direction === "usToUk" ? pair[0] : pair[1];
-                let temporaryPlaceholder = `__PLACEHOLDER_${index}__`;
+            // Step 1: Copy the exact, formatted HTML structure to the output box first
+            outputDiv.innerHTML = inputDiv.innerHTML;
 
-                // The (?<=\b|\d) ensures we catch stitches next to numbers, like "2dc" or "15tr"
-                const regex = new RegExp("(?<=\\b|\\d)" + searchFor + "\\b", "gi");
-                text = text.replace(regex, temporaryPlaceholder);
+            // Step 2: Create a "TreeWalker" to hunt down ONLY the text nodes, ignoring HTML tags
+            const walker = document.createTreeWalker(
+                outputDiv,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+
+            // Step 3: Collect all the text nodes into a list
+            let textNodes = [];
+            let node;
+            while (node = walker.nextNode()) {
+                textNodes.push(node);
+            }
+
+            // Step 4: Run our two-pass translation on each text node independently
+            textNodes.forEach(textNode => {
+                let text = textNode.nodeValue;
+
+                // PASS 1: Placeholders
+                stitchDictionary.forEach((pair, index) => {
+                    let searchFor = direction === "usToUk" ? pair[0] : pair[1];
+                    let temporaryPlaceholder = `__PLACEHOLDER_${index}__`;
+                    const regex = new RegExp("(?<=\\b|\\d)" + searchFor + "\\b", "gi");
+                    text = text.replace(regex, temporaryPlaceholder);
+                });
+
+                // PASS 2: Final translated words
+                stitchDictionary.forEach((pair, index) => {
+                    let replaceWith = direction === "usToUk" ? pair[1] : pair[0];
+                    const regex = new RegExp(`__PLACEHOLDER_${index}__`, "g");
+                    text = text.replace(regex, replaceWith);
+                });
+
+                // Update the text node with the safe, translated text
+                textNode.nodeValue = text;
             });
-
-            // PASS 2: Swap the placeholders for the final translated words.
-            stitchDictionary.forEach((pair, index) => {
-                let replaceWith = direction === "usToUk" ? pair[1] : pair[0];
-                const regex = new RegExp(`__PLACEHOLDER_${index}__`, "g");
-                text = text.replace(regex, replaceWith);
-            });
-
-            document.getElementById("outputPattern").innerText = text;
         }
     </script>
 
